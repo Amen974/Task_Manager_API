@@ -1,17 +1,62 @@
+@baseUrl = http://localhost:3000
+
 ### Register
-POST http://localhost:3000/auth/register
+POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {"email":"test@test.com","password":"password123","name":"Test User"}
 
+### Register - duplicate email (should 409 ConflictException)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{"email":"test@test.com","password":"password123","name":"Test User"}
+
+### Register - invalid email
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{"email":"not-an-email","password":"password123","name":"Test User"}
+
+### Register - password too short
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{"email":"test2@test.com","password":"123","name":"Test User"}
+
 ### Login correct
-POST http://localhost:3000/auth/login
+# @name login
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {"email":"test@test.com","password":"password123"}
 
-### Login wrong password
-POST http://localhost:3000/auth/login
+### Login wrong password (should 401)
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {"email":"test@test.com","password":"wrongpassword"}
+
+### Login - user doesn't exist (should 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"nouser@test.com","password":"password123"}
+
+### Refresh - uses cookie set by the login request above
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{login.response.headers.Set-Cookie}}
+
+### Refresh - no cookie (should 401)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+### Logout - uses cookie set by the login request above
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json
+Cookie: refresh_token={{login.response.headers.Set-Cookie}}
+
+### Logout - no cookie (should 401)
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json

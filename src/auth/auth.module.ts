@@ -6,9 +6,12 @@ import { AuthController } from './auth.controller';
 import { UserModule } from '../users/user.module';
 import { StringValue } from 'ms';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { RefreshTokenService } from './refresh-token.service';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [
+    DatabaseModule,
     UserModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -23,7 +26,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RefreshTokenService],
   exports: [AuthService],
 })
 export class AuthModule {}

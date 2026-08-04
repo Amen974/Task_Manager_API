@@ -4,33 +4,36 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { CreateDto, LoginDto } from './auth.dto';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../users/user.service';
-import { StringValue } from 'ms';
+import { RefreshTokenService } from './refresh-token.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
+    private readonly refreshTokenService: RefreshTokenService,
     private readonly configService: ConfigService,
   ) {}
-  createTokens(userId: number): {
+  async createTokens(
+    userId: number,
+    familyId?: string,
+  ): Promise<{
     access_token: string;
     refresh_token: string;
-  } {
+  }> {
     const payload = { sub: userId };
 
     const access_token = this.jwtService.sign(payload);
 
-    const refresh_token = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-      expiresIn: this.configService.get<string>(
-        'REFRESH_TOKEN_EXPIRES_IN',
-      ) as StringValue,
-    });
+    const refresh_token = await this.refreshTokenService.createRefreshToken(
+      userId,
+      familyId,
+    );
+
     return { access_token, refresh_token };
   }
 
@@ -46,12 +49,12 @@ export class AuthService {
 
     const user = await this.userService.insertUser(email, password_hash, name);
 
-    const { access_token, refresh_token } = this.createTokens(user.id);
+    const { access_token, refresh_token } = await this.createTokens(user.id);
 
     return { access_token, refresh_token };
   }
 
-  async loginUser(
+  async login(
     body: LoginDto,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const { email, password } = body;
@@ -62,8 +65,21 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) throw new UnauthorizedException('Password is incorrect');
 
-    const { access_token, refresh_token } = this.createTokens(user.id);
+    const { access_token, refresh_token } = await this.createTokens(user.id);
 
     return { access_token, refresh_token };
+  }
+
+  async logout(refreshToken: string) {
+    let payload: { sub: number; family_id: string };
+    try {
+      payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException();
+    }
+
+    await this.refreshTokenService.deleteToken(payload.family_id);
   }
 }
