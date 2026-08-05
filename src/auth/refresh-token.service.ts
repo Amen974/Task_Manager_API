@@ -1,9 +1,4 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
@@ -31,25 +26,32 @@ export class RefreshTokenService {
     return expiresAt;
   }
 
-  async addRefreshTokenToDb(
-    userId: number,
-    refreshToken: string,
-    familyId?: string,
-  ): Promise<void> {
-    const hashToken = await bcrypt.hash(refreshToken, 10);
+  async reserveTokenRow(userId: number, familyId: string): Promise<number> {
     const expiresAt = this.expiresIn();
 
+    const result = await this.pool.query<{ id: number }>(
+      'INSERT INTO refresh_tokens (user_id, family_id, expires_at) VALUES ($1, $2, $3) RETURNING id',
+      [userId, familyId, expiresAt],
+    );
+
+    return result.rows[0].id;
+  }
+
+  async setTokenHash(id: number, refreshToken: string): Promise<void> {
+    const hashToken = await bcrypt.hash(refreshToken, 10);
+
     await this.pool.query(
-      'INSERT INTO refresh_tokens (user_id, token_hash, family_id, expires_at) VALUES ($1, $2, $3, $4)',
-      [userId, hashToken, familyId, expiresAt],
+      'UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2',
+      [hashToken, id],
     );
   }
 
   async createRefreshToken(userId: number, familyId?: string): Promise<string> {
     const resolvedFamilyId = familyId ?? randomUUID();
-    const payload = { sub: userId, family_id: resolvedFamilyId };
-    if (familyId) await this.markRefreshTokenAsUsed(familyId);
 
+    const id = await this.reserveTokenRow(userId, resolvedFamilyId);
+
+    const payload = { id, userId: Number(userId), family_id: resolvedFamilyId };
     const refresh_token = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
       expiresIn: this.configService.get<string>(
@@ -57,29 +59,32 @@ export class RefreshTokenService {
       ) as StringValue,
     });
 
-    await this.addRefreshTokenToDb(userId, refresh_token, resolvedFamilyId);
+    await this.setTokenHash(id, refresh_token);
     return refresh_token;
   }
 
-  async markRefreshTokenAsUsed(familyId: string): Promise<void> {
-    await this.pool.query(
-      'UPDATE refresh_tokens SET used = true WHERE family_id = $1',
-      [familyId],
+  async getTokenRow(id: number): Promise<{
+    user_id: number;
+    family_id: string;
+    token_hash: string;
+    used: boolean;
+    expires_at: Date;
+  }> {
+    const result = await this.pool.query<{
+      user_id: number;
+      family_id: string;
+      token_hash: string;
+      used: boolean;
+      expires_at: Date;
+    }>(
+      'SELECT user_id, family_id, token_hash, used, expires_at FROM refresh_tokens WHERE id = $1',
+      [id],
     );
-  }
 
-  async isUsedRefreshToken(
-    hashToken: string,
-    userId: number,
-  ): Promise<boolean> {
-    const result = await this.pool.query<{ used: boolean }>(
-      'SELECT used FROM refresh_tokens WHERE token_hash = $1 AND user_id = $2',
-      [hashToken, userId],
-    );
+    if (result.rowCount === 0)
+      throw new UnauthorizedException('refresh token not found');
 
-    if (result.rowCount === 0) throw new UnauthorizedException();
-
-    return result.rows[0].used;
+    return result.rows[0];
   }
 
   async revokeTokenFamily(familyId: string): Promise<void> {
@@ -100,51 +105,64 @@ export class RefreshTokenService {
     return result.rows[0].revoked_at !== null;
   }
 
-  async getHashToken(userId: number, familyId: string): Promise<string> {
-    const hashToken = await this.pool.query<{ token_hash: string }>(
-      'SELECT token_hash FROM refresh_tokens WHERE user_id = $1 AND family_id = $2',
-      [userId, familyId],
-    );
-
-    if (hashToken.rowCount === 0) throw new UnauthorizedException();
-
-    return hashToken.rows[0].token_hash;
-  }
-
   async deleteToken(familyId: string): Promise<void> {
     await this.pool.query('DELETE FROM refresh_tokens WHERE family_id = $1', [
       familyId,
     ]);
   }
 
+  async markRefreshTokenAsUsed(id: number): Promise<void> {
+    await this.pool.query(
+      'UPDATE refresh_tokens SET used = true WHERE id = $1',
+      [id],
+    );
+  }
+
   async validateRefreshToken(
     refreshToken: string,
-  ): Promise<{ userId: number; familyId: string; message?: string }> {
-    let message: string | undefined;
-    let payload: { sub: number; family_id: string };
+  ): Promise<{ userId: number; familyId: string }> {
+    let payload: { id: number; userId: number; family_id: string };
     try {
       payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException((message = 'invalid token'));
+      throw new UnauthorizedException('invalid token in jwtService.verify');
     }
 
-    const hashToken = await this.getHashToken(payload.sub, payload.family_id);
+    console.log('refresh req token: ', refreshToken);
+    console.log('refresh req token id: ', payload.id);
 
-    const existToken = await bcrypt.compare(refreshToken, hashToken);
-    if (!existToken) throw new ConflictException((message = 'invalid token'));
+    const tokenRow = await this.getTokenRow(payload.id);
 
-    const isUsed = await this.isUsedRefreshToken(hashToken, payload.sub);
-    if (isUsed) {
-      await this.revokeTokenFamily(payload.family_id);
-      throw new UnauthorizedException((message = 'refresh token already used'));
+    console.log('tokenRow hash : ', tokenRow.token_hash);
+    console.log('tokenRow state: ', tokenRow.used);
+
+    if (
+      tokenRow.user_id !== payload.userId ||
+      tokenRow.family_id !== payload.family_id
+    ) {
+      throw new UnauthorizedException('invalid token in tokenRow');
     }
+
+    const matches = await bcrypt.compare(refreshToken, tokenRow.token_hash);
+    if (!matches)
+      throw new UnauthorizedException('invalid token in bcrypt.compare');
 
     const revoked = await this.isRevokedToken(payload.family_id);
-    if (revoked)
-      throw new UnauthorizedException((message = 'refresh token revoked'));
+    if (revoked) throw new UnauthorizedException('refresh token revoked');
 
-    return { userId: payload.sub, familyId: payload.family_id, message };
+    if (tokenRow.expires_at.getTime() < Date.now()) {
+      throw new UnauthorizedException('refresh token expired');
+    }
+
+    if (tokenRow.used) {
+      await this.revokeTokenFamily(payload.family_id);
+      throw new UnauthorizedException('refresh token already used');
+    }
+
+    await this.markRefreshTokenAsUsed(payload.id);
+
+    return { userId: payload.userId, familyId: payload.family_id };
   }
 }

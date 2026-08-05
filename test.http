@@ -60,3 +60,60 @@ Cookie: refresh_token={{login.response.headers.Set-Cookie}}
 ### Logout - no cookie (should 401)
 POST {{baseUrl}}/auth/logout
 Content-Type: application/json
+
+### ===== Refresh token rotation =====
+
+### Rotation step 1 - login to start a fresh family (token A)
+# @name rotationLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"test@test.com","password":"password123"}
+
+### Rotation step 2 - use token A, should succeed and set a NEW cookie (token B)
+# expect: 200/201, Set-Cookie header present, refresh_token value differs from token A
+# @name rotationStep2
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{rotationLogin.response.headers.Set-Cookie}}
+
+### Rotation step 3 - use token B, should succeed and set a NEW cookie (token C)
+# expect: 200/201, Set-Cookie header present, refresh_token value differs from token B
+# @name rotationStep3
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{rotationStep2.response.headers.Set-Cookie}}
+
+### Rotation step 4 - use token C, confirms the chain keeps rotating normally
+# expect: 200/201, Set-Cookie header present
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{rotationStep3.response.headers.Set-Cookie}}
+
+### ===== Token theft detection =====
+
+### Theft step 1 - login to start a fresh family
+# @name theftLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"test@test.com","password":"password123"}
+
+### Theft step 2 - legit rotation, token A -> token B (attacker doesn't act yet)
+# @name theftStep2
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{theftLogin.response.headers.Set-Cookie}}
+
+### Theft step 3 - REPLAY token A (already used) - simulates attacker with a stolen old token
+# expect: 401 Unauthorized (token A has used = true from step 2)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{theftLogin.response.headers.Set-Cookie}}
+
+### Theft step 4 - legit user tries token B (the one issued after the legit rotation)
+# expect: 401 Unauthorized - family was revoked by step 3's reuse detection,
+# even though token B itself was never individually replayed
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+Cookie: refresh_token={{theftStep2.response.headers.Set-Cookie}}

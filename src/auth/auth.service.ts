@@ -49,7 +49,9 @@ export class AuthService {
 
     const user = await this.userService.insertUser(email, password_hash, name);
 
-    const { access_token, refresh_token } = await this.createTokens(user.id);
+    const { access_token, refresh_token } = await this.createTokens(
+      Number(user.id),
+    );
 
     return { access_token, refresh_token };
   }
@@ -70,14 +72,14 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
-  async logout(refreshToken: string) {
-    let payload: { sub: number; family_id: string };
+  async logout(refreshToken: string): Promise<void | string> {
+    let payload: { id: number; userId: number; family_id: string };
     try {
       payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('jwtService in logout didnt valdate');
     }
 
     await this.refreshTokenService.deleteToken(payload.family_id);

@@ -11,6 +11,7 @@ import { CreateDto, LoginDto } from './auth.dto';
 import { ConfigService } from '@nestjs/config';
 import express from 'express';
 import { RefreshTokenService } from './refresh-token.service';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -21,6 +22,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Public()
   async createUser(
     @Body() body: CreateDto,
     @Res({ passthrough: true }) res: express.Response,
@@ -38,11 +40,14 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) res: express.Response,
   ): Promise<{ access_token: string }> {
     const { access_token, refresh_token } = await this.authService.login(body);
+
+    console.log('login new refresh token', refresh_token);
 
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
@@ -54,13 +59,19 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   async refresh(
     @Req() req: express.Request,
     @Res({ passthrough: true }) res: express.Response,
   ): Promise<{ access_token: string }> {
     const cookies = req.cookies as Record<string, string | undefined>;
     const refreshToken = cookies.refresh_token;
-    if (!refreshToken) throw new UnauthorizedException();
+    if (!refreshToken)
+      throw new UnauthorizedException(
+        'refresh in POST didnt find refreshToken',
+      );
+
+    console.log('refresh req token: ', refreshToken);
 
     const { userId, familyId } =
       await this.refreshTokenService.validateRefreshToken(refreshToken);
@@ -76,16 +87,24 @@ export class AuthController {
       sameSite: 'strict',
     });
 
+    console.log('refresh res token: ', refresh_token);
+
     return { access_token };
   }
 
   @Post('logout')
-  async logout(@Req() req: express.Request): Promise<void> {
+  @Public()
+  async logout(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+  ): Promise<void | string> {
     const cookies = req.cookies as Record<string, string | undefined>;
     const refreshToken = cookies.refresh_token;
-
-    if (!refreshToken) throw new UnauthorizedException();
+    if (!refreshToken)
+      throw new UnauthorizedException('no refreshToken in cookies');
 
     await this.authService.logout(refreshToken);
+
+    res.clearCookie('refresh_token');
   }
 }
