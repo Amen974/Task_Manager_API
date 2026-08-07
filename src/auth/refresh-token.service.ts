@@ -130,13 +130,7 @@ export class RefreshTokenService {
       throw new UnauthorizedException('invalid token in jwtService.verify');
     }
 
-    console.log('refresh req token: ', refreshToken);
-    console.log('refresh req token id: ', payload.id);
-
     const tokenRow = await this.getTokenRow(payload.id);
-
-    console.log('tokenRow hash : ', tokenRow.token_hash);
-    console.log('tokenRow state: ', tokenRow.used);
 
     if (
       tokenRow.user_id !== payload.userId ||

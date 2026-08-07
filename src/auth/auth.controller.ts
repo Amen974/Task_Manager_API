@@ -47,8 +47,6 @@ export class AuthController {
   ): Promise<{ access_token: string }> {
     const { access_token, refresh_token } = await this.authService.login(body);
 
-    console.log('login new refresh token', refresh_token);
-
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
       secure: this.configService.get<string>('NODE_ENV') === 'production',
@@ -71,8 +69,6 @@ export class AuthController {
         'refresh in POST didnt find refreshToken',
       );
 
-    console.log('refresh req token: ', refreshToken);
-
     const { userId, familyId } =
       await this.refreshTokenService.validateRefreshToken(refreshToken);
 
@@ -86,8 +82,6 @@ export class AuthController {
       secure: this.configService.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
     });
-
-    console.log('refresh res token: ', refresh_token);
 
     return { access_token };
   }
