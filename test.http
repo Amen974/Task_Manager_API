@@ -1,119 +1,89 @@
 @baseUrl = http://localhost:3000
 
-### Register
+### ============================================
+### 1. Register User A (will be workspace owner)
+### ============================================
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
-{"email":"test@test.com","password":"password123","name":"Test User"}
+{
+  "email": "usera@example.com",
+  "password": "password123",
+  "name": "User A"
+}
 
-### Register - duplicate email (should 409 ConflictException)
+### Copy the access_token from the response into ownerToken below
+@ownerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE3LCJpYXQiOjE3ODYyMzU5OTMsImV4cCI6MTc4NjIzNjg5M30.lr8j7R1dfMdEmXIU_x2LtGDc5PHWA6bIze8j3YmAiFU
+
+
+### ============================================
+### 2. Register User B (will be invited)
+### ============================================
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
-{"email":"test@test.com","password":"password123","name":"Test User"}
+{
+  "email": "userb@example.com",
+  "password": "password123",
+  "name": "User B"
+}
 
-### Register - invalid email
-POST {{baseUrl}}/auth/register
+### Copy the access_token from the response into inviteeToken below
+@inviteeToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE4LCJpYXQiOjE3ODYyMzYwMDMsImV4cCI6MTc4NjIzNjkwM30.5VSe1eAMUwtZ0W_2bEdY2gCltntoZz0NCr9hb2Njk40
+
+
+### ============================================
+### 3. User A creates a workspace
+### (auto-adds User A as 'owner' in members table)
+### ============================================
+POST {{baseUrl}}/workspaces
+Authorization: Bearer {{ownerToken}}
 Content-Type: application/json
 
-{"email":"not-an-email","password":"password123","name":"Test User"}
+{
+  "name": "Acme Corp"
+}
 
-### Register - password too short
-POST {{baseUrl}}/auth/register
+### Check your DB or a GET endpoint (if you have one) to find the workspace id
+@workspaceId = 5
+
+
+### ============================================
+### 4. User A invites User B's email
+### Requires: owner/admin role (WorkspaceGuard + RequireRole)
+### Sends email via Mailtrap sandbox
+### ============================================
+POST {{baseUrl}}/workspaces/{{workspaceId}}/invitations
+Authorization: Bearer {{ownerToken}}
 Content-Type: application/json
 
-{"email":"test2@test.com","password":"123","name":"Test User"}
+{
+  "email": "userb@example.com"
+}
 
-### Login correct
-# @name login
-POST {{baseUrl}}/auth/login
+### Now check your Mailtrap sandbox inbox in the dashboard
+### Copy the token from the accept URL in the email body
+
+
+### ============================================
+### 5. User B accepts the invitation
+### (must be logged in as User B — token from step 2)
+### ============================================
+POST {{baseUrl}}/workspaces/invitations/accept
+Authorization: Bearer {{inviteeToken}}
 Content-Type: application/json
 
-{"email":"test@test.com","password":"password123"}
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJiQGV4YW1wbGUuY29tIiwid29ya3NwYWNlSWQiOjUsImlhdCI6MTc4NjIzNjAzNiwiZXhwIjoxNzg2ODQwODM2fQ.oa2drSqHvoCv5Mg6bDY0AariDFYRxVN-mB1siTPWfW0"
+}
 
-### Login wrong password (should 401)
-POST {{baseUrl}}/auth/login
+### ============================================
+### 6. (Optional) Test decline instead — use a fresh
+### invitation token, don't reuse an accepted one
+### ============================================
+POST {{baseUrl}}/invitations/decline
 Content-Type: application/json
 
-{"email":"test@test.com","password":"wrongpassword"}
-
-### Login - user doesn't exist (should 401)
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{"email":"nouser@test.com","password":"password123"}
-
-### Refresh - uses cookie set by the login request above
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{login.response.headers.Set-Cookie}}
-
-### Refresh - no cookie (should 401)
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-
-### Logout - uses cookie set by the login request above
-POST {{baseUrl}}/auth/logout
-Content-Type: application/json
-Cookie: refresh_token={{login.response.headers.Set-Cookie}}
-
-### Logout - no cookie (should 401)
-POST {{baseUrl}}/auth/logout
-Content-Type: application/json
-
-### ===== Refresh token rotation =====
-
-### Rotation step 1 - login to start a fresh family (token A)
-# @name rotationLogin
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{"email":"test@test.com","password":"password123"}
-
-### Rotation step 2 - use token A, should succeed and set a NEW cookie (token B)
-# expect: 200/201, Set-Cookie header present, refresh_token value differs from token A
-# @name rotationStep2
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{rotationLogin.response.headers.Set-Cookie}}
-
-### Rotation step 3 - use token B, should succeed and set a NEW cookie (token C)
-# expect: 200/201, Set-Cookie header present, refresh_token value differs from token B
-# @name rotationStep3
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{rotationStep2.response.headers.Set-Cookie}}
-
-### Rotation step 4 - use token C, confirms the chain keeps rotating normally
-# expect: 200/201, Set-Cookie header present
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{rotationStep3.response.headers.Set-Cookie}}
-
-### ===== Token theft detection =====
-
-### Theft step 1 - login to start a fresh family
-# @name theftLogin
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{"email":"test@test.com","password":"password123"}
-
-### Theft step 2 - legit rotation, token A -> token B (attacker doesn't act yet)
-# @name theftStep2
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{theftLogin.response.headers.Set-Cookie}}
-
-### Theft step 3 - REPLAY token A (already used) - simulates attacker with a stolen old token
-# expect: 401 Unauthorized (token A has used = true from step 2)
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{theftLogin.response.headers.Set-Cookie}}
-
-### Theft step 4 - legit user tries token B (the one issued after the legit rotation)
-# expect: 401 Unauthorized - family was revoked by step 3's reuse detection,
-# even though token B itself was never individually replayed
-POST {{baseUrl}}/auth/refresh
-Content-Type: application/json
-Cookie: refresh_token={{theftStep2.response.headers.Set-Cookie}}
+{
+  "token": "PASTE_A_DIFFERENT_INVITATION_TOKEN_HERE"
+}

@@ -133,9 +133,7 @@ export class WorkspaceService {
         (memberRole === 'owner' || memberRole === 'admin')) ||
       (userRole === 'member' && memberRole === 'member' && userId != memberId)
     )
-      throw new ForbiddenException(
-        'Members can only remove themselves, not owners or admins',
-      );
+      throw new ForbiddenException('Members can only remove themselves');
 
     if (userRole === 'owner' && userId === memberId) {
       await this.changeOwner(userId, workspaceId);
@@ -155,6 +153,8 @@ export class WorkspaceService {
   ): Promise<void> {
     if (role === 'owner') {
       await this.changeOwner(userId, workspaceId, memberId);
+    } else if (userId === memberId && (role === 'admin' || role === 'member')) {
+      await this.changeOwner(userId, workspaceId);
     } else {
       await this.pool.query(
         'UPDATE members SET role = $1 WHERE member = $2 AND workspace_id = $3',

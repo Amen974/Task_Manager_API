@@ -16,10 +16,6 @@ type Status = 'pending' | 'done' | 'failed';
 export type Role = 'owner' | 'admin' | 'member';
 
 export class CreateTask {
-  @IsInt()
-  @Min(1)
-  projectId!: number;
-
   @IsString()
   @IsNotEmpty()
   @MinLength(1, { message: 'Name must be at least 2 characters' })

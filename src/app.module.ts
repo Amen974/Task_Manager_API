@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { WorkspaceModule } from './workspace/workspace.module';
+import { InvitationModule } from './invitations/invitation.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WorkspaceModule } from './workspace/workspace.module';
     AuthModule,
     UserModule,
     WorkspaceModule,
+    InvitationModule,
   ],
   controllers: [AppController],
   providers: [
