@@ -2,9 +2,11 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -13,18 +15,16 @@ import { WorkspaceService } from './workspace.service';
 import { RequireRole } from './roles.decorator';
 import { WorkspaceGuard } from './guards/workspace.guard';
 import {
-  CreateProjectDto,
   CreateTask,
   CreateTaskRouteDto,
-  CreateWorkspaceDto,
+  GetQueryDto,
+  Name,
   ProjectRouteDto,
   RemoveMemberDto,
   TaskRouteDto,
-  UpdateProjectDto,
   UpdateRoleDtoBody,
   UpdateRoleDtoPram,
   UpdateTaskDto,
-  UpdateWorkspaceDto,
   WorkspaceId,
 } from './workspace.dto';
 
@@ -33,10 +33,7 @@ export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
   @Post()
-  async createWorkspace(
-    @Req() req: express.Request,
-    @Body() dto: CreateWorkspaceDto,
-  ) {
+  async createWorkspace(@Req() req: express.Request, @Body() dto: Name) {
     const userId = Number(req.user?.id);
 
     await this.workspaceService.createWorkspace(dto.name, userId);
@@ -45,10 +42,7 @@ export class WorkspaceController {
   @Put(':workspaceId')
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
-  async updateWorkspace(
-    @Param() workspaceId: WorkspaceId,
-    @Body() dto: UpdateWorkspaceDto,
-  ) {
+  async updateWorkspace(@Param() workspaceId: WorkspaceId, @Body() dto: Name) {
     await this.workspaceService.updateWorkspace(
       workspaceId.workspaceId,
       dto.name,
@@ -65,22 +59,16 @@ export class WorkspaceController {
   @Post(':workspaceId/projects')
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
-  async createProject(
-    @Param() params: WorkspaceId,
-    @Body() dto: CreateProjectDto,
-  ) {
+  async createProject(@Param() params: WorkspaceId, @Body() dto: Name) {
     await this.workspaceService.createProject(params.workspaceId, dto);
   }
 
   @Put(':workspaceId/projects/:projectId')
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
-  async updateProject(
-    @Param() params: ProjectRouteDto,
-    @Body() dto: UpdateProjectDto,
-  ) {
+  async updateProject(@Param() params: ProjectRouteDto, @Body() dto: Name) {
     await this.workspaceService.updateProject(
-      params.workspaceId,
+      params.workspaceId.workspaceId,
       params.projectId,
       dto,
     );
@@ -91,7 +79,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceGuard)
   async deleteProject(@Param() params: ProjectRouteDto) {
     await this.workspaceService.deleteProject(
-      params.workspaceId,
+      params.workspaceId.workspaceId,
       params.projectId,
     );
   }
@@ -104,10 +92,31 @@ export class WorkspaceController {
     @Body() dto: CreateTask,
   ) {
     await this.workspaceService.createTask(
-      params.workspaceId,
+      params.workspaceId.workspaceId,
       params.projectId,
       dto,
     );
+  }
+
+  @Get(':workspaceId/projects/:projectId/tasks')
+  @UseGuards(WorkspaceGuard)
+  async getTasks(
+    @Query() query: GetQueryDto,
+    @Param() params: CreateTaskRouteDto,
+  ) {
+    const result = await this.workspaceService.getTask(
+      params.workspaceId.workspaceId,
+      params.projectId,
+      query.page,
+      query.status,
+      query.assignedTo,
+      query.priority,
+      query.sortBy,
+      query.sortOrder,
+      query.search,
+    );
+
+    return result;
   }
 
   @Put(':workspaceId/tasks/:taskId')
@@ -122,7 +131,7 @@ export class WorkspaceController {
 
     await this.workspaceService.updateTask(
       userId,
-      params.workspaceId,
+      params.workspaceId.workspaceId,
       params.taskId,
       dto,
     );
@@ -132,7 +141,10 @@ export class WorkspaceController {
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
   async deleteTask(@Param() params: TaskRouteDto) {
-    await this.workspaceService.deleteTask(params.workspaceId, params.taskId);
+    await this.workspaceService.deleteTask(
+      params.workspaceId.workspaceId,
+      params.taskId,
+    );
   }
 
   @Delete(':workspaceId/members/:memberId')
@@ -145,7 +157,7 @@ export class WorkspaceController {
 
     await this.workspaceService.removeMember(
       userId,
-      dto.workspaceId,
+      dto.workspaceId.workspaceId,
       dto.memberId,
     );
   }
@@ -162,9 +174,38 @@ export class WorkspaceController {
 
     await this.workspaceService.updateRole(
       userId,
-      params.workspaceId,
+      params.workspaceId.workspaceId,
       params.memberId,
       dto.role,
     );
+  }
+
+  @Get()
+  async getWorkspace(@Req() req: express.Request, @Query() query: GetQueryDto) {
+    const userId = Number(req.user?.id);
+
+    const result = await this.workspaceService.getWorkspaces(
+      userId,
+      query.page,
+      query.search,
+      query.sortBy,
+      query.sortOrder,
+    );
+
+    return result;
+  }
+
+  @Get(':workspaceId')
+  @UseGuards(WorkspaceGuard)
+  async getProject(@Query() query: GetQueryDto, @Param() param: WorkspaceId) {
+    const result = await this.workspaceService.getProject(
+      param.workspaceId,
+      query.page,
+      query.search,
+      query.sortBy,
+      query.sortOrder,
+    );
+
+    return result;
   }
 }

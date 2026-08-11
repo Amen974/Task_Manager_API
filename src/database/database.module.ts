@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
+import { TransactionService } from './Transaction.service';
 
 export const PG_POOL = 'PG_POOL';
 
@@ -19,7 +20,8 @@ export const PG_POOL = 'PG_POOL';
         });
       },
     },
+    TransactionService,
   ],
-  exports: [PG_POOL],
+  exports: [PG_POOL, TransactionService],
 })
 export class DatabaseModule {}

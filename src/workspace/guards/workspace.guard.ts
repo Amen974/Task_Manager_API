@@ -3,7 +3,6 @@ import {
   Injectable,
   ExecutionContext,
   ForbiddenException,
-  NotFoundException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { WorkspaceService } from '../workspace.service';
@@ -23,20 +22,20 @@ export class WorkspaceGuard implements CanActivate {
     const workspaceId = Number(request.params.workspaceId);
     const userId = Number(request.user?.id);
 
-    let member: Role | undefined;
-    try {
-      member = await this.workspaceService.getMemberRole(workspaceId, userId);
-    } catch (error) {
-      if (error instanceof NotFoundException)
-        throw new ForbiddenException('Access denied to this workspace');
-      throw error;
+    const member = await this.workspaceService.getMemberRole(
+      workspaceId,
+      userId,
+    );
+
+    if (member === null) {
+      throw new ForbiddenException('Access denied to this workspace');
     }
 
     const requiredRoles = this.reflector.get<Role[]>(
       'requiredRoles',
       context.getHandler(),
     );
-    if (requiredRoles && member && !requiredRoles.includes(member)) {
+    if (requiredRoles && !requiredRoles.includes(member)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 

@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 import { Status } from './invitation.dto';
 import { EmailService } from '../email/email.service';
+import { TransactionService } from '../database/Transaction.service';
 
 @Injectable()
 export class InvitationService {
@@ -23,6 +24,7 @@ export class InvitationService {
     private readonly configService: ConfigService,
     private jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly transactionService: TransactionService,
   ) {}
 
   async getInviteContext(
@@ -75,6 +77,30 @@ export class InvitationService {
     return expiresAt;
   }
 
+  async existInvitation(email: string): Promise<boolean> {
+    const result = await this.pool.query(
+      'SELECT email FROM invitations WHERE email = $1',
+      [email],
+    );
+
+    if (result.rowCount !== 0) return true;
+
+    return false;
+  }
+
+  async storeInvitation(
+    workspaceId: number,
+    email: string,
+    hashToken: string,
+    createdBy: number,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.pool.query(
+      'INSERT INTO invitations (workspace_id, email, token_hash, status, created_by, expires_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [workspaceId, email, hashToken, 'pending', createdBy, expiresAt],
+    );
+  }
+
   async generateInvitation(
     workspaceId: number,
     email: string,
@@ -84,19 +110,19 @@ export class InvitationService {
     const invitationToken = this.generateToken(email, workspaceId);
     const hashToken = await bcrypt.hash(invitationToken, 10);
 
-    try {
-      await this.pool.query(
-        'INSERT INTO invitations (workspace_id, email, token_hash, status, created_by, expires_at) VALUES ($1, $2, $3, $4, $5, $6)',
-        [workspaceId, email, hashToken, 'pending', createdBy, expiresAt],
+    const exist = await this.existInvitation(email);
+    if (exist)
+      throw new ConflictException(
+        'A pending invitation already exists for this email in this workspace.',
       );
-    } catch (error) {
-      if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException(
-          'A pending invitation already exists for this email in this workspace.',
-        );
-      }
-      throw error;
-    }
+
+    await this.storeInvitation(
+      workspaceId,
+      email,
+      hashToken,
+      createdBy,
+      expiresAt,
+    );
 
     const { workspaceName, inviterName } = await this.getInviteContext(
       workspaceId,
@@ -208,12 +234,14 @@ export class InvitationService {
     const { invitationId, workspaceId } =
       await this.verifyToken(invitationToken);
 
-    await this.workspaceService.addMember(workspaceId, userId, 'member');
+    await this.transactionService.run(async (client) => {
+      await this.workspaceService.addMember(workspaceId, userId, 'member');
 
-    await this.pool.query(
-      "UPDATE invitations SET status = 'accepted', updated_at = $1 WHERE id = $2",
-      [new Date(), invitationId],
-    );
+      await client.query(
+        "UPDATE invitations SET status = 'accepted', updated_at = $1 WHERE id = $2",
+        [new Date(), invitationId],
+      );
+    });
   }
 
   async declineInvitation(invitationToken: string): Promise<void> {

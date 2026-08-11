@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsIn,
   IsInt,
@@ -7,13 +8,31 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 
-type Priority = 'low' | 'medium' | 'high' | 'urgent';
+export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
-type Status = 'pending' | 'done' | 'failed';
+export type Status = 'pending' | 'done' | 'failed';
 
 export type Role = 'owner' | 'admin' | 'member';
+
+export type SortOrder = 'asc' | 'desc';
+
+export type SortBy = 'createdAt' | 'updatedAt' | 'priority' | 'title';
+
+export class WorkspaceId {
+  @IsInt()
+  @Min(1)
+  workspaceId!: number;
+}
+
+export class Name {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  name!: string;
+}
 
 export class CreateTask {
   @IsString()
@@ -76,42 +95,14 @@ export class UpdateTaskDto {
   completedAt?: Date | null;
 }
 
-export class CreateProjectDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name!: string;
-}
-
-export class UpdateProjectDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name!: string;
-}
-
-export class CreateWorkspaceDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name!: string;
-}
-
-export class UpdateWorkspaceDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name!: string;
-}
-
 export class UpdateRoleDtoPram {
   @IsInt()
   @Min(1)
   memberId!: number;
 
-  @IsInt()
-  @Min(1)
-  workspaceId!: number;
+  @ValidateNested()
+  @Type(() => WorkspaceId)
+  workspaceId!: WorkspaceId;
 }
 
 export class UpdateRoleDtoBody {
@@ -122,25 +113,19 @@ export class UpdateRoleDtoBody {
 }
 
 export class RemoveMemberDto {
-  @IsInt()
-  @Min(1)
-  workspaceId!: number;
+  @ValidateNested()
+  @Type(() => WorkspaceId)
+  workspaceId!: WorkspaceId;
 
   @IsInt()
   @Min(1)
   memberId!: number;
 }
 
-export class WorkspaceId {
-  @IsInt()
-  @Min(1)
-  workspaceId!: number;
-}
-
 export class ProjectRouteDto {
-  @IsInt()
-  @Min(1)
-  workspaceId!: number;
+  @ValidateNested()
+  @Type(() => WorkspaceId)
+  workspaceId!: WorkspaceId;
 
   @IsInt()
   @Min(1)
@@ -148,9 +133,9 @@ export class ProjectRouteDto {
 }
 
 export class CreateTaskRouteDto {
-  @IsInt()
-  @Min(1)
-  workspaceId!: number;
+  @ValidateNested()
+  @Type(() => WorkspaceId)
+  workspaceId!: WorkspaceId;
 
   @IsInt()
   @Min(1)
@@ -158,11 +143,56 @@ export class CreateTaskRouteDto {
 }
 
 export class TaskRouteDto {
-  @IsInt()
-  @Min(1)
-  workspaceId!: number;
+  @ValidateNested()
+  @Type(() => WorkspaceId)
+  workspaceId!: WorkspaceId;
 
   @IsInt()
   @Min(1)
   taskId!: number;
+}
+
+export class GetProjectsDto {
+  @ValidateNested()
+  @Type(() => WorkspaceId)
+  workspaceId!: WorkspaceId;
+
+  @IsInt()
+  @Min(1)
+  projectId!: number;
+}
+
+export class GetQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['pending', 'done', 'failed'])
+  status?: Status;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  assignedTo?: number;
+
+  @IsOptional()
+  @IsIn(['low', 'medium', 'high', 'urgent'])
+  priority?: Priority;
+
+  @IsOptional()
+  @IsIn(['createdAt', 'updatedAt', 'priority', 'title'])
+  sortBy?: SortBy;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: SortOrder;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
