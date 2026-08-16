@@ -20,8 +20,8 @@ import {
   WorkspaceUpdatedEvent,
 } from './events.event';
 import { JwtService } from '@nestjs/jwt';
-import { parseCookie } from 'cookie';
 import { MemberService } from '../workspace/member/member.service';
+import { ConfigService } from '@nestjs/config';
 
 interface SocketData {
   userId: number;
@@ -41,23 +41,24 @@ export class RealtimeGateway {
   server: Server | undefined;
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly memberService: MemberService,
     private readonly jwtService: JwtService,
   ) {}
 
   handleConnection(socket: AppSocket) {
     try {
-      const parseCookies = parseCookie;
-      const cookies = parseCookies(socket.handshake.headers.cookie ?? '');
-      const token = cookies['access_token'];
+      const token = socket.handshake.auth?.token as string | undefined;
 
       if (!token) {
         socket.disconnect();
         return;
       }
 
-      const payload = this.jwtService.verify<{ userId: number }>(token);
-      socket.data.userId = payload.userId;
+      const payload = this.jwtService.verify<{ sub: number }>(token, {
+        secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
+      });
+      socket.data.userId = payload.sub;
     } catch {
       socket.disconnect();
     }

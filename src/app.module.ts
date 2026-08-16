@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module';
 import { InvitationModule } from './invitations/invitation.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { EmailModule } from './email/email.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { EmailModule } from './email/email.module';
     UserModule,
     WorkspaceModule,
     InvitationModule,
+    RealtimeModule,
     EmailModule,
   ],
   controllers: [AppController],
