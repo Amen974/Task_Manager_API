@@ -2,10 +2,21 @@ import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
 import { WorkspaceService } from './workspace.service';
 import { WorkspaceController } from './workspace.controller';
+import { MemberController } from './member/member.controller';
+import { MemberService } from './member/member.service';
+import { ProjectController } from './project/project.controller';
+import { ProjectService } from './project/project.service';
+import { TaskService } from './task/task.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [WorkspaceController],
-  providers: [WorkspaceService],
+  controllers: [
+    MemberController,
+    WorkspaceController,
+    ProjectController,
+    TaskController,
+  ],
+  providers: [MemberService, WorkspaceService, ProjectService, TaskController],
+  exports: [MemberService, WorkspaceService, ProjectService, TaskService],
 })
 export class WorkspaceModule {}

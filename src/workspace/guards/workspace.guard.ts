@@ -5,14 +5,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { WorkspaceService } from '../workspace.service';
 import { Request } from 'express';
 import { Role } from '../workspace.dto';
+import { MemberService } from '../member/member.service';
 
 @Injectable()
 export class WorkspaceGuard implements CanActivate {
   constructor(
-    private readonly workspaceService: WorkspaceService,
+    private readonly memberService: MemberService,
     private readonly reflector: Reflector,
   ) {}
 
@@ -22,10 +22,7 @@ export class WorkspaceGuard implements CanActivate {
     const workspaceId = Number(request.params.workspaceId);
     const userId = Number(request.user?.id);
 
-    const member = await this.workspaceService.getMemberRole(
-      workspaceId,
-      userId,
-    );
+    const member = await this.memberService.getMemberRole(workspaceId, userId);
 
     if (member === null) {
       throw new ForbiddenException('Access denied to this workspace');

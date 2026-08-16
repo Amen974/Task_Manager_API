@@ -1,16 +1,18 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module';
 import { InvitationService } from './invitation.service';
-import { WorkspaceService } from '../workspace/workspace.service';
 import { InvitationController } from './invitation.controller';
-import { EmailService } from '../email/email.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { StringValue } from 'ms';
+import { WorkspaceModule } from '../workspace/workspace.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     DatabaseModule,
+    WorkspaceModule,
+    EmailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -24,6 +26,6 @@ import { StringValue } from 'ms';
     }),
   ],
   controllers: [InvitationController],
-  providers: [InvitationService, WorkspaceService, EmailService],
+  providers: [InvitationService],
 })
 export class InvitationModule {}

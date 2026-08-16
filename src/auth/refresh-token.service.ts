@@ -3,9 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 import { Pool } from 'pg';
-import { PG_POOL } from '../database/database.module';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { PG_POOL } from '../database/pg-pool.token';
 
 @Injectable()
 export class RefreshTokenService {

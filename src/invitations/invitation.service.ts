@@ -1,5 +1,4 @@
 import { Pool } from 'pg';
-import { PG_POOL } from '../database/database.module';
 import {
   ConflictException,
   Inject,
@@ -7,7 +6,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { WorkspaceService } from '../workspace/workspace.service';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -15,15 +13,17 @@ import { StringValue } from 'ms';
 import { Status } from './invitation.dto';
 import { EmailService } from '../email/email.service';
 import { TransactionService } from '../database/Transaction.service';
+import { PG_POOL } from '../database/pg-pool.token';
+import { MemberService } from '../workspace/member/member.service';
 
 @Injectable()
 export class InvitationService {
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
-    private readonly workspaceService: WorkspaceService,
+    private readonly memberService: MemberService,
     private readonly configService: ConfigService,
-    private jwtService: JwtService,
     private readonly emailService: EmailService,
+    private jwtService: JwtService,
     private readonly transactionService: TransactionService,
   ) {}
 
@@ -235,7 +235,7 @@ export class InvitationService {
       await this.verifyToken(invitationToken);
 
     await this.transactionService.run(async (client) => {
-      await this.workspaceService.addMember(workspaceId, userId, 'member');
+      await this.memberService.addMember(workspaceId, userId, 'member');
 
       await client.query(
         "UPDATE invitations SET status = 'accepted', updated_at = $1 WHERE id = $2",

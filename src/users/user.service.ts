@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
-import { PG_POOL } from '../database/database.module';
 import { Inject, Injectable } from '@nestjs/common';
+import { PG_POOL } from '../database/pg-pool.token';
 
 @Injectable()
 export class UserService {
