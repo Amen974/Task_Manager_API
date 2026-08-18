@@ -13,8 +13,7 @@ Content-Type: application/json
 }
 
 ### Copy the access_token from the response into ownerToken below
-@ownerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE3LCJpYXQiOjE3ODYyMzU5OTMsImV4cCI6MTc4NjIzNjg5M30.lr8j7R1dfMdEmXIU_x2LtGDc5PHWA6bIze8j3YmAiFU
-
+@ownerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImlhdCI6MTc4NzA5NDM3OCwiZXhwIjoxNzg3MDk1Mjc4fQ.IIKc4DicOzTQ1B_UdTpSfGnF5QcHAJ_wgWrQeiTJn9E
 
 ### ============================================
 ### 2. Register User B (will be invited)
@@ -29,8 +28,7 @@ Content-Type: application/json
 }
 
 ### Copy the access_token from the response into inviteeToken below
-@inviteeToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE4LCJpYXQiOjE3ODYyMzYwMDMsImV4cCI6MTc4NjIzNjkwM30.5VSe1eAMUwtZ0W_2bEdY2gCltntoZz0NCr9hb2Njk40
-
+@inviteeToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjksImlhdCI6MTc4NzA5NDQwMSwiZXhwIjoxNzg3MDk1MzAxfQ.4Om5-zj2a6bjY6aPHC1yr8B7CHQWmU-7Z2-PUMseMKY
 
 ### ============================================
 ### 3. User A creates a workspace
@@ -45,7 +43,7 @@ Content-Type: application/json
 }
 
 ### Check your DB or a GET endpoint (if you have one) to find the workspace id
-@workspaceId = 5
+@workspaceId = 3
 
 
 ### ============================================
@@ -74,7 +72,7 @@ Authorization: Bearer {{inviteeToken}}
 Content-Type: application/json
 
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJiQGV4YW1wbGUuY29tIiwid29ya3NwYWNlSWQiOjUsImlhdCI6MTc4NjIzNjAzNiwiZXhwIjoxNzg2ODQwODM2fQ.oa2drSqHvoCv5Mg6bDY0AariDFYRxVN-mB1siTPWfW0"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJiQGV4YW1wbGUuY29tIiwid29ya3NwYWNlSWQiOjMsImlhdCI6MTc4NzA5NDQ0OSwiZXhwIjoxNzg3Njk5MjQ5fQ.zobGZDZVoeJA5OVgWEBBjObf2BgVVzUJI_TkpIUBwpE"
 }
 
 ### ============================================

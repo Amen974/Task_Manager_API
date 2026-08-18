@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './users/user.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -12,6 +12,7 @@ import { InvitationModule } from './invitations/invitation.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { EmailModule } from './email/email.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -19,6 +20,19 @@ import { RealtimeModule } from './realtime/realtime.module';
       isGlobal: true,
     }),
     EventEmitterModule.forRoot(),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: 'cunning-feline-118084.upstash.io',
+          port: 6379,
+          username: 'default',
+          password: configService.get<string>('REDIS_PASSWORD'),
+          tls: {},
+        },
+      }),
+    }),
     DatabaseModule,
     AuthModule,
     UserModule,

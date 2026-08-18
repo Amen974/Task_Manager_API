@@ -6,13 +6,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { StringValue } from 'ms';
 import { WorkspaceModule } from '../workspace/workspace.module';
-import { EmailModule } from '../email/email.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
     DatabaseModule,
     WorkspaceModule,
-    EmailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -23,6 +22,9 @@ import { EmailModule } from '../email/email.module';
           ) as StringValue,
         },
       }),
+    }),
+    BullModule.registerQueue({
+      name: 'email',
     }),
   ],
   controllers: [InvitationController],

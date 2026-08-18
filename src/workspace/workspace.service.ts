@@ -34,8 +34,8 @@ export class WorkspaceService {
         updatedAt: Date;
       }>(
         `INSERT INTO workspaces 
-        (name, created_by, updated_at") 
-        VALUES ($1, $2) 
+        (name, created_by, updated_at) 
+        VALUES ($1, $2, $3) 
         RETURNING id, name, created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"`,
         [name, createdBy, updatedAt],
       );

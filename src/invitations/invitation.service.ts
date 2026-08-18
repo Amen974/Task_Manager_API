@@ -11,18 +11,20 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 import { Status } from './invitation.dto';
-import { EmailService } from '../email/email.service';
 import { TransactionService } from '../database/Transaction.service';
 import { PG_POOL } from '../database/pg-pool.token';
 import { MemberService } from '../workspace/member/member.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class InvitationService {
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
+    @InjectQueue('email')
+    private readonly emailQueue: Queue,
     private readonly memberService: MemberService,
     private readonly configService: ConfigService,
-    private readonly emailService: EmailService,
     private jwtService: JwtService,
     private readonly transactionService: TransactionService,
   ) {}
@@ -133,13 +135,13 @@ export class InvitationService {
     const acceptUrl = `${frontendUrl}/invitations/accept?token=${invitationToken}`;
     const declineUrl = `${frontendUrl}/invitations/decline?token=${invitationToken}`;
 
-    await this.emailService.sendInvitationEmail(
+    await this.emailQueue.add('send-invitation', {
       email,
       inviterName,
       workspaceName,
       acceptUrl,
       declineUrl,
-    );
+    });
   }
 
   async getHashToken(
