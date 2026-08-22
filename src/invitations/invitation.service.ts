@@ -135,13 +135,17 @@ export class InvitationService {
     const acceptUrl = `${frontendUrl}/invitations/accept?token=${invitationToken}`;
     const declineUrl = `${frontendUrl}/invitations/decline?token=${invitationToken}`;
 
-    await this.emailQueue.add('send-invitation', {
-      email,
-      inviterName,
-      workspaceName,
-      acceptUrl,
-      declineUrl,
-    });
+    await this.emailQueue.add(
+      'send-invitation',
+      {
+        email,
+        inviterName,
+        workspaceName,
+        acceptUrl,
+        declineUrl,
+      },
+      { delay: 3000, attempts: 5, removeOnComplete: true, removeOnFail: true },
+    );
   }
 
   async getHashToken(

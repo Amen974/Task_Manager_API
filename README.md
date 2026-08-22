@@ -87,3 +87,16 @@ CREATE UNIQUE INDEX idx_invitations_pending_unique
   
 CREATE INDEX idx_invitations_workspace_id ON invitations(workspace_id);
 CREATE INDEX idx_invitations_email ON invitations(email);
+
+CREATE TABLE files (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  storage_key TEXT NOT NULL UNIQUE,
+  original_name TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size BIGINT NOT NULL,
+  created_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_files_task_id ON files(task_id);
