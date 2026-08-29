@@ -9,13 +9,13 @@ import {
 } from '@nestjs/common';
 import { MemberService } from './member.service';
 import express from 'express';
+import { WorkspaceGuard } from '../guards/workspace.guard';
+import { RequireRole } from '../roles.decorator';
 import {
   RemoveMemberDto,
   UpdateRoleDtoBody,
   UpdateRoleDtoPram,
-} from '../workspace.dto';
-import { WorkspaceGuard } from '../guards/workspace.guard';
-import { RequireRole } from '../roles.decorator';
+} from './member.dto';
 
 @Controller('workspaces')
 export class MemberController {
@@ -31,7 +31,7 @@ export class MemberController {
 
     await this.memberService.removeMember(
       userId,
-      dto.workspaceId.workspaceId,
+      dto.workspaceId,
       dto.memberId,
     );
   }
@@ -48,7 +48,7 @@ export class MemberController {
 
     await this.memberService.updateRole(
       userId,
-      params.workspaceId.workspaceId,
+      params.workspaceId,
       params.memberId,
       dto.role,
     );

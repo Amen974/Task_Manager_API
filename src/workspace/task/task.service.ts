@@ -13,15 +13,14 @@ import {
   TaskDeletedEvent,
   TaskUpdatedEvent,
 } from '../../realtime/events.event';
+import { MemberService } from '../member/member.service';
+import { CreateTask, UpdateTaskDto } from './task.dto';
 import {
-  CreateTask,
   Priority,
   SortBy,
   SortOrder,
   Status,
-  UpdateTaskDto,
-} from '../workspace.dto';
-import { MemberService } from '../member/member.service';
+} from '../../types/workspace.types';
 
 @Injectable()
 export class TaskService {
@@ -36,14 +35,8 @@ export class TaskService {
     projectId: number,
     body: CreateTask,
   ): Promise<void> {
-    const {
-      title,
-      instructions,
-      assigned_to: assignedTo,
-      priority,
-      status,
-      completedAt,
-    } = body;
+    const { title, instructions, assignedTo, priority, status, completedAt } =
+      body;
 
     const project = await this.pool.query<{ id: number }>(
       'SELECT id FROM projects WHERE id = $1 AND workspace_id = $2',
@@ -59,13 +52,13 @@ export class TaskService {
       title: string;
       instructions: string | null;
       assignedTo: number | null;
-      priority: string;
-      status: string;
+      priority: Priority;
+      status: Status;
       completedAt: Date | null;
     }>(
       `INSERT INTO tasks (project_id, title, instructions, assigned_to, priority, status, completed_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING title, instructions, assigned_to AS "assignedTo", priority, status, completed_at AS "completedAt"`,
+         RETURNING title, instructions, assigned_to As "assignedTo", priority, status, completed_at AS "completedAt"`,
       [
         projectId,
         title,
@@ -86,18 +79,26 @@ export class TaskService {
   async updateTask(
     userId: number,
     workspaceId: number,
+    projectId: number,
     taskId: number,
     body: UpdateTaskDto,
-  ): Promise<void> {
+  ): Promise<{
+    title: string;
+    instructions: string | null;
+    assignedTo: number | null;
+    priority: Priority;
+    status: Status;
+    completedAt: Date | null;
+  }> {
     const task = await this.pool.query<{
       id: number;
-      assigned_to: number | null;
+      assignedTo: number | null;
     }>(
       `SELECT t.id, t.assigned_to
-         FROM tasks t
-         JOIN projects p ON p.id = t.project_id
-         WHERE t.id = $1 AND p.workspace_id = $2`,
-      [taskId, workspaceId],
+       FROM tasks t
+       JOIN projects p ON p.id = t.project_id
+       WHERE t.id = $1 AND p.id = $2 AND p.workspace_id = $3`,
+      [taskId, projectId, workspaceId],
     );
 
     if (task.rows.length === 0) {
@@ -109,7 +110,7 @@ export class TaskService {
       userId,
     );
 
-    if (userRole === 'member' && task.rows[0].assigned_to !== userId) {
+    if (userRole === 'member' && task.rows[0].assignedTo !== userId) {
       throw new ForbiddenException(
         'Members can only update tasks assigned to themselves',
       );
@@ -119,33 +120,33 @@ export class TaskService {
     const values: unknown[] = [];
 
     if (body.title !== undefined) {
-      fields.push('title = $1');
       values.push(body.title);
+      fields.push(`title = $${values.length}`);
     }
 
     if (body.instructions !== undefined) {
-      fields.push(`instructions = $${values.length + 1}`);
       values.push(body.instructions);
+      fields.push(`instructions = $${values.length}`);
     }
 
-    if (body.assigned_to !== undefined) {
-      fields.push(`assigned_to = $${values.length + 1}`);
-      values.push(body.assigned_to);
+    if (body.assignedTo !== undefined) {
+      values.push(body.assignedTo);
+      fields.push(`assigned_to = $${values.length}`);
     }
 
     if (body.priority !== undefined) {
-      fields.push(`priority = $${values.length + 1}`);
       values.push(body.priority);
+      fields.push(`priority = $${values.length}`);
     }
 
     if (body.status !== undefined) {
-      fields.push(`status = $${values.length + 1}`);
       values.push(body.status);
+      fields.push(`status = $${values.length}`);
     }
 
     if (body.completedAt !== undefined) {
-      fields.push(`completed_at = $${values.length + 1}`);
       values.push(body.completedAt);
+      fields.push(`completed_at = $${values.length}`);
     }
 
     if (fields.length === 0) {
@@ -154,26 +155,27 @@ export class TaskService {
 
     values.push(taskId);
 
-    const updatedAt = new Date();
-    values.push(updatedAt);
-
     const taskEvent = await this.pool.query<{
       title: string;
       instructions: string | null;
       assignedTo: number | null;
-      priority: string;
-      status: string;
+      priority: Priority;
+      status: Status;
       completedAt: Date | null;
+      createdAt: Date;
+      updatedAt: Date;
     }>(
-      `UPDATE tasks SET ${fields.join(', ')} updated_at = ${values.length} WHERE id = $${values.length - 1} 
-        RETURNING title, instructions, assigned_to AS "assignedTo", priority, status, completed_at AS "completedAt"`,
+      `UPDATE tasks SET ${fields.join(', ')} WHERE id = $${values.length} 
+        RETURNING title, instructions, assigned_to AS "assignedTo", priority, status, completed_at AS "completedAt", created_at AS "createdAt", updated_at AS "updatedAt"`,
       values,
     );
 
     this.eventEmitter.emit(
       'task.updated',
-      new TaskUpdatedEvent(workspaceId, taskEvent.rows[0], updatedAt),
+      new TaskUpdatedEvent(workspaceId, taskEvent.rows[0]),
     );
+
+    return taskEvent.rows[0];
   }
 
   async deleteTask(workspaceId: number, taskId: number): Promise<void> {
@@ -198,8 +200,8 @@ export class TaskService {
   }
 
   async getTask(
-    workspaceId: number,
     projectId: number,
+    workspaceId: number,
     page: number,
     status?: Status,
     assignedTo?: number,
@@ -220,7 +222,7 @@ export class TaskService {
     }>
   > {
     const offset = (page - 1) * 20;
-    const values: unknown[] = [workspaceId, projectId];
+    const values: unknown[] = [projectId, workspaceId];
     const sortColumns: Record<string, string> = {
       createdAt: 't.created_at',
       updatedAt: 't.updated_at',
@@ -242,7 +244,7 @@ export class TaskService {
         t.updated_at AS "updatedAt"
       FROM tasks t
       JOIN projects p ON p.id = t.project_id
-      WHERE p.workspace_id = $1 AND t.project_id = $2
+      WHERE p.id = $1 AND p.workspace_id = $2
     `;
 
     if (status !== undefined) {
@@ -263,7 +265,6 @@ export class TaskService {
     values.push(search ?? '');
     query += `AND ($${values.length} = '' OR t.title ILIKE '%' || $${values.length} || '%') `;
 
-    values.push(column, direction);
     query += `ORDER BY ${column} ${direction} `;
 
     values.push(offset);

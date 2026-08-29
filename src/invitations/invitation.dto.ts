@@ -1,8 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsNumber, Min } from 'class-validator';
 
-export type Status = 'pending' | 'accepted' | 'declined';
-
 export class InviteDto {
   @IsNotEmpty()
   @IsEmail()

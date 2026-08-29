@@ -7,9 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import { Role } from '../workspace.dto';
 import { PG_POOL } from '../../database/pg-pool.token';
 import { TransactionService } from '../../database/Transaction.service';
+import { Role } from '../../types/workspace.types';
 
 @Injectable()
 export class MemberService {

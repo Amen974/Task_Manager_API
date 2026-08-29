@@ -1,33 +1,23 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { UserService } from './user.service';
+import { EmailDto, GetUserByIdDto } from './user.dto';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  async getUserByEmail(@Body('email') email: string) {
-    return this.userService.getUserByEmail(email);
+  async getUserByEmail(@Body() dto: EmailDto) {
+    return this.userService.getUserByEmail(dto.email);
   }
 
   @Get()
-  async getUserById(@Body('id') id: number) {
-    return this.userService.getUserById(id);
+  async getUserById(@Body() dto: GetUserByIdDto) {
+    return this.userService.getUserById(dto.id);
   }
 
   @Post()
-  async insertUser(
-    @Body()
-    {
-      email,
-      password_hash,
-      name,
-    }: {
-      email: string;
-      password_hash: string;
-      name: string;
-    },
-  ) {
-    return this.userService.insertUser(email, password_hash, name);
+  async insertUser(@Body() dto: EmailDto) {
+    return this.userService.insertUser(dto.email, dto.password_hash, dto.name);
   }
 }

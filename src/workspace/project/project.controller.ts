@@ -9,15 +9,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  GetQueryDto,
-  Name,
-  ProjectRouteDto,
-  WorkspaceId,
-} from '../workspace.dto';
 import { WorkspaceGuard } from '../guards/workspace.guard';
 import { RequireRole } from '../roles.decorator';
 import { ProjectService } from './project.service';
+import { GetQueryDto, WorkspaceId } from '../workspace.dto';
+import { Name, ProjectRouteDto } from './project.dto';
 
 @Controller('workspaces')
 export class ProjectController {
@@ -34,11 +30,13 @@ export class ProjectController {
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
   async updateProject(@Param() params: ProjectRouteDto, @Body() dto: Name) {
-    await this.projectService.updateProject(
-      params.workspaceId.workspaceId,
+    const response = await this.projectService.updateProject(
+      params.workspaceId,
       params.projectId,
       dto,
     );
+
+    return response;
   }
 
   @Delete(':workspaceId/projects/:projectId')
@@ -46,12 +44,12 @@ export class ProjectController {
   @UseGuards(WorkspaceGuard)
   async deleteProject(@Param() params: ProjectRouteDto) {
     await this.projectService.deleteProject(
-      params.workspaceId.workspaceId,
+      params.workspaceId,
       params.projectId,
     );
   }
 
-  @Get(':workspaceId')
+  @Get(':workspaceId/projects')
   @UseGuards(WorkspaceGuard)
   async getProject(@Query() query: GetQueryDto, @Param() param: WorkspaceId) {
     const result = await this.projectService.getProject(

@@ -30,11 +30,8 @@ export class WorkspaceController {
   @Put(':workspaceId')
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
-  async updateWorkspace(@Param() workspaceId: WorkspaceId, @Body() dto: Name) {
-    await this.workspaceService.updateWorkspace(
-      workspaceId.workspaceId,
-      dto.name,
-    );
+  async updateWorkspace(@Param() parm: WorkspaceId, @Body() dto: Name) {
+    await this.workspaceService.updateWorkspace(parm.workspaceId, dto.name);
   }
 
   @Delete(':workspaceId')

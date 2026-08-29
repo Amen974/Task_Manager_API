@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { Role } from '../workspace.dto';
 import { MemberService } from '../member/member.service';
+import { Role } from '../../types/workspace.types';
 
 @Injectable()
 export class WorkspaceGuard implements CanActivate {

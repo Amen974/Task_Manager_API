@@ -8,7 +8,6 @@ import { ProjectController } from './project/project.controller';
 import { TaskController } from './task/task.controller';
 import { ProjectService } from './project/project.service';
 import { TaskService } from './task/task.service';
-import { WorkspaceGuard } from './guards/workspace.guard';
 
 @Module({
   imports: [DatabaseModule],
@@ -19,12 +18,6 @@ import { WorkspaceGuard } from './guards/workspace.guard';
     TaskController,
   ],
   providers: [MemberService, WorkspaceService, ProjectService, TaskService],
-  exports: [
-    MemberService,
-    WorkspaceService,
-    ProjectService,
-    TaskService,
-    WorkspaceGuard,
-  ],
+  exports: [MemberService, WorkspaceService, ProjectService, TaskService],
 })
 export class WorkspaceModule {}

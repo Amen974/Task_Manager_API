@@ -18,6 +18,7 @@ import { BullModule } from '@nestjs/bullmq';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
     EventEmitterModule.forRoot(),
     BullModule.forRootAsync({

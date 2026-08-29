@@ -1,5 +1,4 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { SortBy, SortOrder } from './workspace.dto';
 import { Pool } from 'pg';
 import { TransactionService } from '../database/Transaction.service';
 import { PG_POOL } from '../database/pg-pool.token';
@@ -10,6 +9,7 @@ import {
   WorkspaceUpdatedEvent,
 } from '../realtime/events.event';
 import { MemberService } from './member/member.service';
+import { SortBy, SortOrder } from '../types/workspace.types';
 
 @Injectable()
 export class WorkspaceService {
@@ -128,10 +128,10 @@ export class WorkspaceService {
      JOIN members m ON m.workspace_id = w.id
      WHERE m.member = $1
        AND ($2 = '' OR w.name ILIKE '%' || $2 || '%')
-     ORDER BY $3 $4
+     ORDER BY ${column} ${direction}
      LIMIT 20
-     OFFSET $5`,
-      [userId, search ?? '', column, direction, offset],
+     OFFSET $3`,
+      [userId, search ?? '', offset],
     );
 
     return result.rows;

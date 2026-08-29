@@ -11,16 +11,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import express from 'express';
-import {
-  CreateTask,
-  CreateTaskRouteDto,
-  GetQueryDto,
-  TaskRouteDto,
-  UpdateTaskDto,
-} from '../workspace.dto';
 import { WorkspaceGuard } from '../guards/workspace.guard';
 import { RequireRole } from '../roles.decorator';
 import { TaskService } from './task.service';
+import {
+  CreateTask,
+  CreateTaskRouteDto,
+  GetTaskDto,
+  TaskRouteDto,
+  UpdateTaskDto,
+} from './task.dto';
 
 @Controller('workspaces')
 export class TaskController {
@@ -34,7 +34,7 @@ export class TaskController {
     @Body() dto: CreateTask,
   ) {
     await this.taskService.createTask(
-      params.workspaceId.workspaceId,
+      params.workspaceId,
       params.projectId,
       dto,
     );
@@ -43,12 +43,12 @@ export class TaskController {
   @Get(':workspaceId/projects/:projectId/tasks')
   @UseGuards(WorkspaceGuard)
   async getTasks(
-    @Query() query: GetQueryDto,
+    @Query() query: GetTaskDto,
     @Param() params: CreateTaskRouteDto,
   ) {
     const result = await this.taskService.getTask(
-      params.workspaceId.workspaceId,
       params.projectId,
+      params.workspaceId,
       query.page,
       query.status,
       query.assignedTo,
@@ -61,7 +61,7 @@ export class TaskController {
     return result;
   }
 
-  @Put(':workspaceId/tasks/:taskId')
+  @Put(':workspaceId/projects/:projectId/tasks/:taskId')
   @RequireRole('owner', 'admin', 'member')
   @UseGuards(WorkspaceGuard)
   async updateTask(
@@ -71,21 +71,21 @@ export class TaskController {
   ) {
     const userId = Number(req.user?.id);
 
-    await this.taskService.updateTask(
+    const response = await this.taskService.updateTask(
       userId,
-      params.workspaceId.workspaceId,
+      params.workspaceId,
+      params.projectId,
       params.taskId,
       dto,
     );
+
+    return response;
   }
 
-  @Delete(':workspaceId/tasks/:taskId')
+  @Delete(':workspaceId/projects/:projectId/tasks/:taskId')
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
   async deleteTask(@Param() params: TaskRouteDto) {
-    await this.taskService.deleteTask(
-      params.workspaceId.workspaceId,
-      params.taskId,
-    );
+    await this.taskService.deleteTask(params.workspaceId, params.taskId);
   }
 }

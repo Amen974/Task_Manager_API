@@ -1,3 +1,5 @@
+import { Priority, Status } from '../types/workspace.types';
+
 export class WorkspaceCreatedEvent {
   constructor(
     public readonly workspaceId: number,
@@ -66,8 +68,8 @@ export class TaskCreatedEvent {
       title: string;
       instructions: string | null;
       assignedTo: number | null;
-      priority: string;
-      status: string;
+      priority: Priority;
+      status: Status;
       completedAt: Date | null;
     },
     public readonly createdAt: Date,
@@ -81,11 +83,12 @@ export class TaskUpdatedEvent {
       title: string;
       instructions: string | null;
       assignedTo: number | null;
-      priority: string;
-      status: string;
+      priority: Priority;
+      status: Status;
       completedAt: Date | null;
+      createdAt: Date;
+      updatedAt: Date;
     },
-    public readonly updatedAt: Date,
   ) {}
 }
 

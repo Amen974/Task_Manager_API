@@ -7,7 +7,7 @@ import {
   ProjectDeletedEvent,
   ProjectUpdatedEvent,
 } from '../../realtime/events.event';
-import { SortBy, SortOrder } from '../workspace.dto';
+import { SortBy, SortOrder } from '../../types/workspace.types';
 
 @Injectable()
 export class ProjectService {
@@ -40,7 +40,7 @@ export class ProjectService {
     workspaceId: number,
     projectId: number,
     body: { name: string },
-  ): Promise<void> {
+  ): Promise<{ name: string; updatedAt: Date }> {
     const project = await this.pool.query<{ id: number }>(
       'SELECT id FROM projects WHERE id = $1 AND workspace_id = $2',
       [projectId, workspaceId],
@@ -63,6 +63,8 @@ export class ProjectService {
       'project.updated',
       new ProjectUpdatedEvent(workspaceId, projectEvent.rows[0], updatedAt),
     );
+
+    return projectEvent.rows[0];
   }
 
   async deleteProject(workspaceId: number, projectId: number): Promise<void> {
@@ -119,10 +121,10 @@ export class ProjectService {
        JOIN workspaces w ON w.id = p.workspace_id
        WHERE w.id = $1
        AND ($2 = '' OR p.name ILIKE '%' || $2 || '%')
-       ORDER BY $3 $4
+       ORDER BY ${column} ${direction}
        LIMIT 20
-       OFFSET $5`,
-      [workspaceId, search ?? '', column, direction, offset],
+       OFFSET $3`,
+      [workspaceId, search ?? '', offset],
     );
 
     return result.rows;
