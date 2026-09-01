@@ -11,6 +11,7 @@ describe('memberController (e2e)', () => {
   let pool: Pool;
   let emailQueue: Queue;
   let ownerAccessToken: string;
+  let memberAccessToken: string;
 
   beforeAll(async () => {
     ({ app, pool } = await createTestApp());
@@ -22,7 +23,7 @@ describe('memberController (e2e)', () => {
       'TRUNCATE users, workspaces, members, projects, tasks, invitations, files, refresh_tokens RESTART IDENTITY CASCADE',
     );
 
-    const ownerRegester = await request(app.getHttpServer())
+    const ownerRegister = await request(app.getHttpServer())
       .post('/auth/register')
       .send({
         email: 'owner@example.com',
@@ -31,7 +32,7 @@ describe('memberController (e2e)', () => {
       })
       .expect(201);
 
-    ownerAccessToken = (ownerRegester.body as { access_token: string })
+    ownerAccessToken = (ownerRegister.body as { access_token: string })
       .access_token;
 
     await request(app.getHttpServer())
@@ -49,8 +50,7 @@ describe('memberController (e2e)', () => {
       })
       .expect(201);
 
-    const memberAccessToken = (member.body as { access_token: string })
-      .access_token;
+    memberAccessToken = (member.body as { access_token: string }).access_token;
 
     await request(app.getHttpServer())
       .post('/workspaces/1/invitations')
@@ -67,12 +67,12 @@ describe('memberController (e2e)', () => {
     if (!job) throw new Error('Invitation email job not found');
 
     const acceptUrl = (job.data as { acceptUrl: string }).acceptUrl;
-    const token = new URL(acceptUrl).searchParams.get('token');
+    const invitationToken = new URL(acceptUrl).searchParams.get('token')!;
 
     await request(app.getHttpServer())
       .post('/workspaces/invitations/accept')
       .set('Authorization', `Bearer ${memberAccessToken}`)
-      .send({ token })
+      .send({ token: invitationToken })
       .expect(201);
   });
 
@@ -82,18 +82,67 @@ describe('memberController (e2e)', () => {
     await app.close();
   });
 
-  it('DELETE /workspaces/:workspaceId/members/:memberId removes a member', async () => {
-    await request(app.getHttpServer())
-      .delete('/workspaces/1/members/2')
-      .set('Authorization', `Bearer ${ownerAccessToken}`)
-      .expect(200);
+  describe('Member Role Management API', () => {
+    it('PUT /workspaces/:workspaceId/members/:memberId/role changes a member role', async () => {
+      await request(app.getHttpServer())
+        .put('/workspaces/1/members/2/role')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send({ role: 'admin' })
+        .expect(200);
+    });
+
+    it('returns 403 Forbidden when non-owner attempts to change role', async () => {
+      await request(app.getHttpServer())
+        .put('/workspaces/1/members/1/role')
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .send({ role: 'admin' })
+        .expect(403);
+    });
+
+    it('returns 400 Bad Request when role string is invalid', async () => {
+      await request(app.getHttpServer())
+        .put('/workspaces/1/members/2/role')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send({ role: 'superking' })
+        .expect(400);
+    });
+
+    it('returns 404 Not Found when memberId does not exist in workspace', async () => {
+      await request(app.getHttpServer())
+        .put('/workspaces/1/members/99999/role')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .send({ role: 'admin' })
+        .expect(404);
+    });
   });
 
-  it('PUT /workspaces/:workspaceId/members/:memberId/role changes a member role', async () => {
-    await request(app.getHttpServer())
-      .put('/workspaces/1/members/2/role')
-      .set('Authorization', `Bearer ${ownerAccessToken}`)
-      .send({ role: 'admin' })
-      .expect(200);
+  describe('Member Removal API', () => {
+    it('DELETE /workspaces/:workspaceId/members/:memberId removes a member', async () => {
+      await request(app.getHttpServer())
+        .delete('/workspaces/1/members/2')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .expect(200);
+    });
+
+    it('allows a member to remove themselves from workspace', async () => {
+      await request(app.getHttpServer())
+        .delete('/workspaces/1/members/2')
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .expect(200);
+    });
+
+    it('returns 403 Forbidden when a regular member tries to remove another member', async () => {
+      await request(app.getHttpServer())
+        .delete('/workspaces/1/members/1')
+        .set('Authorization', `Bearer ${memberAccessToken}`)
+        .expect(403);
+    });
+
+    it('returns 404 Not Found when memberId does not exist in workspace', async () => {
+      await request(app.getHttpServer())
+        .delete('/workspaces/1/members/99999')
+        .set('Authorization', `Bearer ${ownerAccessToken}`)
+        .expect(404);
+    });
   });
 });

@@ -4,13 +4,15 @@ import { ConfigService } from '@nestjs/config';
 import { StorageService } from './storage.service';
 import { WorkspaceModule } from '../workspace/workspace.module';
 import { StorageController } from './storage.controller';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports: [WorkspaceModule],
+  imports: [WorkspaceModule, DatabaseModule],
   controllers: [StorageController],
   providers: [
     {
       provide: 'B2_CLIENT',
+      inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         return new S3Client({
           region: config.get<string>('B2_Region'),

@@ -34,7 +34,14 @@ export class TaskService {
     workspaceId: number,
     projectId: number,
     body: CreateTask,
-  ): Promise<void> {
+  ): Promise<{
+    title: string;
+    instructions: string | null;
+    assignedTo: number | null;
+    priority: Priority;
+    status: Status;
+    completedAt: Date | null;
+  }> {
     const { title, instructions, assignedTo, priority, status, completedAt } =
       body;
 
@@ -74,6 +81,8 @@ export class TaskService {
       'task.created',
       new TaskCreatedEvent(workspaceId, taskEvent.rows[0], createdAt),
     );
+
+    return taskEvent.rows[0];
   }
 
   async updateTask(

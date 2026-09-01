@@ -10,12 +10,12 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { StringValue } from 'ms';
-import { Status } from './invitation.dto';
 import { TransactionService } from '../database/Transaction.service';
 import { PG_POOL } from '../database/pg-pool.token';
 import { MemberService } from '../workspace/member/member.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { Status } from '../types/workspace.types';
 
 @Injectable()
 export class InvitationService {

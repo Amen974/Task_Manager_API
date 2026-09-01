@@ -13,6 +13,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { EmailModule } from './email/email.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { BullModule } from '@nestjs/bullmq';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { BullModule } from '@nestjs/bullmq';
     InvitationModule,
     RealtimeModule,
     EmailModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [

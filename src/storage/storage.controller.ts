@@ -23,7 +23,7 @@ import { RequireRole } from '../workspace/roles.decorator';
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
-  @Post(':workspaceId/projects/:projectId/tasks/:taskId')
+  @Post(':workspaceId/projects/:projectId/tasks/:taskId/store')
   @RequireRole('owner', 'admin')
   @UseGuards(WorkspaceGuard)
   async createUploadUrl(
@@ -47,7 +47,7 @@ export class StorageController {
     @Param() params: ConfirmUploadParams,
     @Body() dto: ConfirmUploadBody,
     @Req() request: Request,
-  ): Promise<{ id: number; fileId: number }> {
+  ): Promise<{ id: number; fileId: string }> {
     return await this.storageService.confirmUpload(
       params.workspaceId,
       params.projectId,

@@ -1,14 +1,18 @@
+import { Type } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 
 export class CreateUploadUrlPram {
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   workspaceId!: number;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   projectId!: number;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   taskId!: number;
@@ -21,21 +25,24 @@ export class CreateUploadUrlBody {
 }
 
 export class ConfirmUploadParams {
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   workspaceId!: number;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   projectId!: number;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   taskId!: number;
 
-  @IsInt()
-  @Min(1)
-  fileId!: number;
+  @IsString()
+  @IsNotEmpty()
+  fileId!: string;
 }
 
 export class ConfirmUploadBody {
@@ -45,19 +52,22 @@ export class ConfirmUploadBody {
 }
 
 export class getFileDto {
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   workspaceId!: number;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   projectId!: number;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   taskId!: number;
 
-  @IsInt()
-  @Min(1)
-  fileId!: number;
+  @IsString()
+  @IsNotEmpty()
+  fileId!: string;
 }

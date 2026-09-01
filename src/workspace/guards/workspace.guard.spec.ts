@@ -53,4 +53,12 @@ describe('WorkspaceGuard', () => {
 
     await expect(guard.canActivate(context)).resolves.toBeTruthy();
   });
+
+  it('returns true when no roles are required and user is a member', async () => {
+    memberService.getMemberRole.mockResolvedValue('member');
+    reflector.get.mockReturnValue(undefined);
+    const context = mockContext(1, 41);
+
+    await expect(guard.canActivate(context)).resolves.toBeTruthy();
+  });
 });

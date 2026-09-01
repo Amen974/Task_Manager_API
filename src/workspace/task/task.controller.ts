@@ -33,11 +33,13 @@ export class TaskController {
     @Param() params: CreateTaskRouteDto,
     @Body() dto: CreateTask,
   ) {
-    await this.taskService.createTask(
+    const response = await this.taskService.createTask(
       params.workspaceId,
       params.projectId,
       dto,
     );
+
+    return response;
   }
 
   @Get(':workspaceId/projects/:projectId/tasks')

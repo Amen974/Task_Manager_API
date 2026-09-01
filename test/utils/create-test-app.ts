@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../src/database/pg-pool.token';
 import { AppModule } from '../../src/app.module';
+import { EmailService } from '../../src/email/email.service';
 
 export async function createTestApp(): Promise<{
   app: INestApplication;
@@ -11,7 +12,13 @@ export async function createTestApp(): Promise<{
 }> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(EmailService)
+    .useValue({
+      sendEmail: jest.fn().mockResolvedValue(undefined),
+      sendInvitationEmail: jest.fn().mockResolvedValue(undefined),
+    })
+    .compile();
 
   const app = moduleFixture.createNestApplication();
 

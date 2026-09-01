@@ -63,10 +63,10 @@ export class StorageService {
     workspaceId: number,
     projectId: number,
     taskId: number,
-    fileId: number,
+    fileId: string,
     originalName: string,
     userId: number,
-  ): Promise<{ id: number; fileId: number }> {
+  ): Promise<{ id: number; fileId: string }> {
     const task = await this.pool.query<{ id: number }>(
       `SELECT t.id
        FROM tasks t
@@ -129,7 +129,7 @@ export class StorageService {
     workspaceId: number,
     projectId: number,
     taskId: number,
-    fileId: number,
+    fileId: string,
   ): Promise<{ signedUrl: string }> {
     const storageKey = `workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/files/${fileId}`;
 
