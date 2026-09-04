@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './users/user.module';
 import { AuthModule } from './auth/auth.module';
@@ -46,7 +45,6 @@ import { StorageModule } from './storage/storage.module';
   ],
   controllers: [AppController],
   providers: [
-    AppService,
     JwtAuthGuard,
     {
       provide: APP_GUARD,

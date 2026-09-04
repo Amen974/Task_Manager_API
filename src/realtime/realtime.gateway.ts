@@ -182,7 +182,6 @@ export class RealtimeGateway {
 
     this.server.to(room).emit('task.updated', {
       task: event.task,
-      updatedBy: event.updatedAt,
     });
   }
 

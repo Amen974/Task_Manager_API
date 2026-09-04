@@ -77,6 +77,7 @@ export class TaskCreatedEvent {
 }
 
 export class TaskUpdatedEvent {
+  updatedAt: any;
   constructor(
     public readonly workspaceId: number,
     public readonly task: {
