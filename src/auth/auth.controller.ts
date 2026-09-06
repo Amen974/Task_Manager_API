@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateDto, LoginDto } from './auth.dto';
-import { ConfigService } from '@nestjs/config';
 import express from 'express';
 import { RefreshTokenService } from './refresh-token.service';
 import { Public } from '../common/decorators/public.decorator';
@@ -17,7 +16,6 @@ import { Public } from '../common/decorators/public.decorator';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService,
     private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
@@ -32,8 +30,8 @@ export class AuthController {
 
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
-      secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
     });
 
     return { access_token };
@@ -49,8 +47,8 @@ export class AuthController {
 
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
-      secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
     });
 
     return { access_token };
@@ -79,8 +77,8 @@ export class AuthController {
 
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
-      secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
     });
 
     return { access_token };
